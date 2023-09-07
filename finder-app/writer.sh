@@ -9,14 +9,16 @@ fi
 
 writefile=$1
 writestr=$2
+if [ ! -d $(dirname "$writefile") ]
+then
+    mkdir $(dirname "$writefile")
+fi
 
 if [ -f $writefile ]
 then
-    rm $writefile
-    echo Directory and the file already exists
+    # rm $writefile
+    # echo Directory and the file already exists
     echo "$writestr" > "$writefile"
 else
     echo "$writestr" > "$writefile"
 fi
-
-
