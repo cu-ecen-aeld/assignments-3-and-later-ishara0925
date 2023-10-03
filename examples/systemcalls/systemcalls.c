@@ -16,6 +16,8 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    if(system(cmd) == 0) return true;
+    else return false;
 
     return true;
 }
@@ -39,16 +41,9 @@ bool do_exec(int count, ...)
     va_list args;
     va_start(args, count);
     char * command[count+1];
+    char *path;
     int i;
-    for(i=0; i<count; i++)
-    {
-        command[i] = va_arg(args, char *);
-    }
-    command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
-
+ 
 /*
  * TODO:
  *   Execute a system command by calling fork, execv(),
@@ -58,10 +53,45 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    int wstatus;
+    __pid_t pid = fork();
+    if(pid < 0){
+        perror("fork error");
+        return false;
+    }
+    else if(pid == 0){
+        printf(" This is child process. ");
+
+        for (i = 0; i < count; i++){
+            if (i == 0){
+                path = va_arg(args, char *);
+                continue;
+            }
+            command[i - 1] = va_arg(args, char *);
+        }
+
+        command[count -1] = NULL;
+        command[count - 1] = command[count - 1];
+
+        if(execv(path,command) < 0 ){
+            perror("execv error: ");
+            exit(-1);
+        }
+    }
+    else
+    {
+
+        int waitID = waitpid(pid, &wstatus, 0);
+        if (waitID == -1)
+            return false;
+        else if ((waitID == pid) && WIFEXITED(wstatus)){
+            // printf("child status %d %d %d **", pid, waitID, (int8_t)WEXITSTATUS(wstatus));
+            return ((int8_t)WEXITSTATUS(wstatus) == 0) ? true : false;
+        }
+    }
 
     va_end(args);
-
-    return true;
+    return false;
 }
 
 /**
@@ -74,16 +104,8 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_list args;
     va_start(args, count);
     char * command[count+1];
+    char *path;
     int i;
-    for(i=0; i<count; i++)
-    {
-        command[i] = va_arg(args, char *);
-    }
-    command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
-
 
 /*
  * TODO
@@ -92,8 +114,61 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    int fd = open(outputfile, O_RDWR|O_CREAT|O_TRUNC, 0777);
+    if (fd < 0) { 
+        perror("open :"); 
+        exit(-1);
+    }
+    
+    int wstatus;
+    __pid_t pid = fork();
+    printf(" pid is %d",pid);
+    if(pid < 0){
+        perror("fork error");
+        return false;
+    }
+    else if(pid == 0){
+        printf(" This is child process. test_redirec start");
 
+        for (i = 0; i < count; i++){
+            if (i == 0){
+                path = va_arg(args, char *);
+                continue;
+            }
+            command[i - 1] = va_arg(args, char *);
+        }
+
+        command[count -1] = NULL;
+        command[count - 1] = command[count - 1];
+
+        if (dup2(fd,1) < 0) { 
+            perror("dup2");
+            exit(-1);
+        }
+        if (dup2(fd,2) < 0) { 
+            perror("dup2");
+            exit(-1);
+        }
+        close(fd);
+        //write(fd,command,50);
+        //write(1,command,20);
+        if(execv(path,command) < 0 ){
+            perror("execv error: ");
+            exit(-1);
+        }
+    }
+    else
+    {
+        close(fd);
+        int waitID = waitpid(pid, &wstatus, 0);
+        if (waitID == -1)
+            return false;
+        else if ((waitID == pid) && WIFEXITED(wstatus)){
+            //printf("child status %d %d %d **", pid, waitID, (int8_t)WEXITSTATUS(wstatus));
+            return ((int8_t)WEXITSTATUS(wstatus) == 0) ? true : false;
+        }
+    }
+    close(fd);
     va_end(args);
-
-    return true;
+    return false;
 }
