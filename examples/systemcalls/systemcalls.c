@@ -41,7 +41,6 @@ bool do_exec(int count, ...)
     va_list args;
     va_start(args, count);
     char * command[count+1];
-    char *path;
     int i;
  
 /*
@@ -63,17 +62,13 @@ bool do_exec(int count, ...)
         printf(" This is child process. ");
 
         for (i = 0; i < count; i++){
-            if (i == 0){
-                path = va_arg(args, char *);
-                continue;
-            }
-            command[i - 1] = va_arg(args, char *);
+            command[i] = va_arg(args, char *);
         }
 
-        command[count -1] = NULL;
-        command[count - 1] = command[count - 1];
+        command[count] = NULL;
+        command[count] = command[count];
 
-        if(execv(path,command) < 0 ){
+        if(execv(command[0],command) < 0 ){
             perror("execv error: ");
             exit(-1);
         }
@@ -104,7 +99,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_list args;
     va_start(args, count);
     char * command[count+1];
-    char *path;
     int i;
 
 /*
@@ -122,37 +116,32 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     
     int wstatus;
     __pid_t pid = fork();
-    printf(" pid is %d",pid);
     if(pid < 0){
         perror("fork error");
         return false;
     }
     else if(pid == 0){
-        printf(" This is child process. test_redirec start");
+       // printf(" This is child process. test_redirec start");
 
         for (i = 0; i < count; i++){
-            if (i == 0){
-                path = va_arg(args, char *);
-                continue;
-            }
-            command[i - 1] = va_arg(args, char *);
+            command[i] = va_arg(args, char *);
         }
 
-        command[count -1] = NULL;
-        command[count - 1] = command[count - 1];
+        command[count] = NULL;
+        command[count] = command[count];
 
         if (dup2(fd,1) < 0) { 
             perror("dup2");
             exit(-1);
         }
-        if (dup2(fd,2) < 0) { 
-            perror("dup2");
-            exit(-1);
-        }
+        // if (dup2(fd,2) < 0) { 
+        //     perror("dup2");
+        //     exit(-1);
+        // }
         close(fd);
         //write(fd,command,50);
         //write(1,command,20);
-        if(execv(path,command) < 0 ){
+        if(execv(command[0],command) < 0 ){
             perror("execv error: ");
             exit(-1);
         }
